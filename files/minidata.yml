@@ -7,7 +7,7 @@ data:
     borrar: NO
     gh_organization: jgonzalez-clever
     gh_repository_name: RepoTestingAnsibleMig
-    grupo: 1
+    group: 1
 -
 #    bbs_project_id: TPROJ
 #    bbs_project_name: TPROJ
