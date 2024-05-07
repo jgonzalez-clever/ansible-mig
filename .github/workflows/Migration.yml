@@ -1,0 +1,38 @@
+name: Migration
+
+on:
+  workflow_dispatch:
+
+jobs:
+  Migration:
+    runs-on: [ 'self-hosted' , 'macOS' , 'X64' ]
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Run migration and configure output files
+        run: |
+          # START MIGRATION PROCESS
+          echo ${{ secrets.VAULT_PASS }} | ansible-playbook --connection="local" -e @../secrets/secrets_file.enc  --vault-password-file=/bin/cat main.yml -vvv
+
+          # CREATE RUNNER ARTIFACT FOLDER
+          mkdir ../MIGRATION-${{ github.run_number }}
+
+          # GENERATE AND MODEL COMMITS .JSON FILES
+          ( echo '[' ; cat ./repos/pregithubcommits.json | tr -d '\n' | sed 's/.$//' ; echo ']' ) | jq . > githubcommits.json
+          
+          # MOVE FILES TO RUNNER ARTIFACT FOLDER
+          mv githubcommits.json ../MIGRATION-${{ github.run_number }}
+          mv failed.log ../MIGRATION-${{ github.run_number }}
+          mv success.log ../MIGRATION-${{ github.run_number }}
+          mv OpenedPrsRepos.log ../MIGRATION-${{ github.run_number }}
+          mv LFS.log ../MIGRATION-${{ github.run_number }}
+
+          # REMOVE UNUSED DATA
+          rm ./repos/*.json
+          
+      - name: Upload to artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: LOG Outputs MIGRATION-${{ github.run_number }}
+          path: /Users/marcofernandezrolon/WORK/BCPRepo/actions-runner/_work/AnsibleMig/MIGRATION-${{ github.run_number }}/*
+

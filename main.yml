@@ -1,0 +1,38 @@
+---
+- hosts: localhost
+  vars:
+    group: 0
+  tasks:
+    - name: Load data from data.yml
+      include_vars:
+        file: files/minidata.yml
+        name: data_file
+          
+    - name: Creating failed.log file
+      file:
+        path: "failed.log"
+        state: touch
+
+    - name: Creating success.log file
+      file:
+        path: "success.log"
+        state: touch
+
+    - name: Creating OpenedPrsRepos.log file
+      file:
+        path: "OpenedPrsRepos.log"
+        state: touch
+
+    - name: Creating LFS.log file
+      file:
+        path: "LFS.log"
+        state: touch
+
+    - name: Filter data by group
+      set_fact:
+        filtered_data: "{{ data_file.data | selectattr('grupo', 'equalto', group) | list }}"
+
+    - include_tasks: tasks/git.yml
+      loop: "{{ data_file.data }}"
+      loop_control:
+        loop_var: item

@@ -1,0 +1,164 @@
+---
+- name: Migration BBStoGH
+  block:
+    - name: Check if the Repository has opnened PRs
+      uri:
+        url: http://localhost:7990/rest/api/latest/projects/{{ item.bbs_project_id }}/repos/{{ item.bbs_repository_name }}/pull-requests
+        method: GET
+        headers:
+          Accept: application/json
+          Authorization: Bearer {{ bbs_token }}
+      register: bbs_pullrequest
+
+    - name: Get PRS Size
+      set_fact:
+        opened_prs: "{{ bbs_pullrequest.json.size }}"
+    
+    - block:
+        - name: Clone BitBucket Repository {{ item.bbs_repository_name }}
+          command: git clone {{  item.bbs_repository_url  }} "repos/{{ item.grupo }}/{{ item.bbs_project_id }}" --mirror
+    
+        - name: Get Default Branch from BBS Repository
+          uri:
+            url: http://localhost:7990/rest/api/latest/projects/{{ item.bbs_project_id }}/repos/{{ item.bbs_repository_name }}/default-branch
+            method: GET
+            headers:
+              Accept: application/json
+              Authorization: Bearer {{ bbs_token }}
+          register: bbs_project
+          
+        - name: Set Default Branch
+          set_fact:
+            default_branch: "{{ bbs_project.json.displayId}}"
+    
+        - name: Check if the repository exist
+          uri:
+            url: https://api.github.com/repos/{{ item.gh_organization }}/{{ item.gh_repository_name }}
+            method: GET
+            headers:
+              Accept: application/vnd.github+json
+              Authorization: Bearer {{ gh_token }}
+              X-GitHub-Api-Version: 2022-11-28
+            body_format: json
+            status_code: [200, 404]
+          register: gh_api_repository_exist_response
+    
+        - name: Create an GitHub Organization Repository
+          uri:
+            url: https://api.github.com/orgs/{{ item.gh_organization }}/repos
+            method: POST
+            headers:
+              Accept: application/vnd.github+json
+              Authorization: Bearer {{ gh_token }}
+              X-GitHub-Api-Version: 2022-11-28
+            body_format: json
+            body:
+              name: "{{ item.gh_repository_name }}"
+              visibility: internal
+            status_code: 201
+          register: gh_api_repository_reponse
+          when: gh_api_repository_exist_response.status == 404
+          retries: 6
+          delay: 600
+          until: gh_api_repository_reponse.status == 201
+          
+        - name: Failed run 
+          fail: msg="Repository exists"
+          when: gh_api_repository_exist_response.status == 200
+      
+        - name: Add GitHub Remote
+          command: git remote add github https://github.com/{{ item.gh_organization }}/{{  item.gh_repository_name  }}.git
+          args:
+            chdir: "repos/{{ item.grupo }}/{{ item.bbs_project_id }}"
+          
+        - name: Ignore files
+          shell: |
+            echo "*.exe\n*.txt" >> ./info/exclude
+            git filter-branch --index-filter 'git rm --cached --ignore-unmatch *.txt *.exe' -- --all
+          args:
+            chdir: "repos/{{ item.grupo }}/{{ item.bbs_project_id }}"
+            
+        - name: Git Push Mirror to GitHub {{ item.gh_repository_name }}
+          block:
+            - name: Git Push Mirror to GitHub {{ item.gh_repository_name }}
+              ansible.builtin.command: git push github --mirror
+              args:
+                chdir: "repos/{{ item.grupo }}/{{ item.bbs_project_id }}"
+          rescue:
+            - name: Git LFS Migrate Import {{ item.gh_repository_name }}
+              ansible.builtin.command: git lfs migrate import --above="100 MB" --everything
+              args:
+                chdir: "repos/{{ item.grupo }}/{{ item.bbs_project_id }}"
+            
+            - name: Add LFS to LFS.log
+              lineinfile:
+                path: LFS.log
+                line: "LFS;{{ item.bbs_project_id }};{{ item.bbs_repository_url }};{{ item.bbs_repository_name }};{{ item.bbs_project_name }};{{ item.borrar }};{{ item.gh_repository_name }};{{ item.grupo }};https://github.com/{{ item.gh_organization }}/{{  item.gh_repository_name  }}"
+    
+            - name: Retry Git Push Mirror to GitHub {{ item.gh_repository_name }}
+              command: git push github --mirror
+              args:
+                chdir: "repos/{{ item.grupo }}/{{ item.bbs_project_id }}"
+    
+        - name: Update the default branch
+          uri:
+            url: https://api.github.com/repos/{{ item.gh_organization }}/{{ item.gh_repository_name }}
+            method: PATCH
+            headers:
+              Accept: application/vnd.github+json
+              Authorization: Bearer {{ gh_token }}
+              X-GitHub-Api-Version: 2022-11-28
+            body_format: json
+            body:
+              default_branch: "{{ default_branch }}"
+            status_code: [200, 422]
+
+        - name: Clone GitHub Repository {{ item.gh_repository_name }}
+          command: git clone https://github.com/{{ item.gh_organization }}/{{ item.gh_repository_name }} "repos/{{ item.grupo }}/GITHUB" --mirror
+
+        - name: Git Commits for main and developer branch (github)
+          shell:
+            cmd: |
+              echo '"Nombre_Repositorio":"{{ item.gh_repository_name }}","Branch":{"master":{"commits":' > ghrepocommits.json
+              {% raw %} git log master --pretty=format:'{"commit_id": "%H","date": "%ad","author": "%an"}'| grep -v "origin" | tr -d '\n' | sed 's/}{/}, {/g' | sed -e 's/^/[/' |sed -e 's/$/]/'  {% endraw %} >> ghrepocommits.json
+              echo '},"develop":{"commits":' >> ghrepocommits.json
+              {% raw %} git log develop --pretty=format:'{"commit_id": "%H","date": "%ad","author": "%an"}'| grep -v "origin" | tr -d '\n' | sed 's/}{/}, {/g' | sed -e 's/^/[/' |sed -e 's/$/]/' {% endraw %} >> ghrepocommits.json
+              ( echo '{' ; cat ghrepocommits.json ; echo '}}},' ) >> ../../pregithubcommits.json
+          args:
+            chdir: "repos/{{ item.grupo }}/GITHUB"
+          when: gh_api_repository_exist_response.status == 404
+            
+        - name: Add Success to sucess.txt
+          lineinfile:
+            path: success.log
+            line: "ok;{{ item.bbs_project_id }};{{ item.bbs_repository_url }};{{ item.bbs_repository_name }};{{ item.bbs_project_name }};{{ item.borrar }};{{ item.gh_repository_name }};{{ item.grupo }};https://github.com/{{ item.gh_organization }}/{{  item.gh_repository_name  }}"
+    
+        - name: Delete BitBucket Directory
+          file:
+            path: repos/{{ item.grupo }}/{{ item.bbs_project_id }}
+            state: absent
+
+        - name: Delete GitHub Directory
+          file:
+            path: repos/{{ item.grupo }}/GITHUB
+            state: absent
+  
+      rescue:
+        - name: Add Failed (ERROR) to failed.log
+          lineinfile:
+            path: failed.log
+            line: "error;{{ item.bbs_project_id }};{{ item.bbs_repository_url }};{{ item.bbs_repository_name }};{{ item.bbs_project_name }};{{ item.borrar }};{{ item.gh_repository_name }};{{ item.grupo }};https://github.com/{{ item.gh_organization }}/{{  item.gh_repository_name  }};ERROR"
+          when: gh_api_repository_exist_response.status == 404
+        
+        - name: Add Failed (REPO EXISTS) to failed.log
+          lineinfile:
+            path: failed.log
+            line: "error;{{ item.bbs_project_id }};{{ item.bbs_repository_url }};{{ item.bbs_repository_name }};{{ item.bbs_project_name }};{{ item.borrar }};{{ item.gh_repository_name }};{{ item.grupo }};https://github.com/{{ item.gh_organization }}/{{  item.gh_repository_name  }};REPO EXISTS"
+          when: gh_api_repository_exist_response.status == 200
+      when: opened_prs == "0"
+          
+    - name: Repositories with opened PRs
+      lineinfile:
+        path: OpenedPrsRepos.log
+        line: "error;{{ item.bbs_repository_url }};{{ item.bbs_repository_name }};{{ item.bbs_project_name }};OpenedPRS={{ opened_prs }}"
+      when: opened_prs != "0"

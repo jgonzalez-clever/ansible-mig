@@ -1,0 +1,12 @@
+sudo yum install ansible
+
+nano secrets_file.enc
+
+bbs_gh_mirror_username: "gh username"
+bbs_gh_mirror_token: "gh token"
+bbs_token: "bbs token"
+gh_token: "gh token"
+gh_username: "gh username"
+
+ansible-vault encrypt secrets_file.enc
+# Set password and load it on github as secrets.VAULT_PASS
