@@ -78,15 +78,12 @@
           args:
             chdir: "repos/{{ item.grupo }}/{{ item.bbs_project_id }}"
             
-        #- name: Git Push Mirror to GitHub {{ item.gh_repository_name }}
-        #  block:
-        #    - name: Git Push Mirror to GitHub {{ item.gh_repository_name }}
-        #      ansible.builtin.command: git push github --mirror
-        #      args:
-        #        chdir: "repos/{{ item.grupo }}/{{ item.bbs_project_id }}"
         - name: Git Push Mirror to GitHub {{ item.gh_repository_name }}
-          ansible.builtin.command: git push github --mirror
-          chdir: "repos/{{ item.grupo }}/{{ item.bbs_project_id }}"
+          block:
+            - name: Git Push Mirror to GitHub {{ item.gh_repository_name }}
+              ansible.builtin.command: git push github --mirror
+              args:
+                chdir: "repos/{{ item.grupo }}/{{ item.bbs_project_id }}"
 
           rescue:
             - name: Git LFS Migrate Import {{ item.gh_repository_name }}
