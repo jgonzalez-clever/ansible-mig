@@ -54,7 +54,7 @@
             body_format: json
             body:
               name: "{{ item.gh_repository_name }}"
-              visibility: internal
+              visibility: private
             status_code: 201
           register: gh_api_repository_reponse
           when: gh_api_repository_exist_response.status == 404
