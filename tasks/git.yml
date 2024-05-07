@@ -19,8 +19,8 @@
           command: git clone {{  item.bbs_repository_url  }} "repos/{{ item.grupo }}/{{ item.bbs_project_id }}" --mirror
     
         - name: Get Default Branch from BBS Repository
-          uri:
-            url: http://localhost:7990/rest/api/latest/projects/{{ item.bbs_project_id }}/repos/{{ item.bbs_repository_name }}/default-branch
+          uri: 
+            url: http://localhost:7990/rest/api/1.0/projects/{{ item.bbs_project_id }}/repos/{{ item.bbs_repository_name }}/branches/default
             method: GET
             headers:
               Accept: application/json
