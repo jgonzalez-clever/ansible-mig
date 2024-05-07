@@ -82,20 +82,23 @@
           block:
             - name: Git Push Mirror to GitHub {{ item.gh_repository_name }}
               ansible.builtin.command: git push github --mirror
-              chdir: "repos/{{ item.grupo }}/{{ item.bbs_project_id }}"
-        
+              args:
+                chdir: "repos/{{ item.grupo }}/{{ item.bbs_project_id }}"
           rescue:
             - name: Git LFS Migrate Import {{ item.gh_repository_name }}
               ansible.builtin.command: git lfs migrate import --above="100 MB" --everything
-              chdir: "repos/{{ item.grupo }}/{{ item.bbs_project_id }}"
+              args:
+                chdir: "repos/{{ item.grupo }}/{{ item.bbs_project_id }}"
             
             - name: Add LFS to LFS.log
-              ansible.builtin.shell: echo "LFS;{{ item.bbs_project_id }};{{ item.bbs_repository_url }};{{ item.bbs_repository_name }};{{ item.bbs_project_name }};{{ item.borrar }};{{ item.gh_repository_name }};{{ item.grupo }};https://github.com/{{ item.gh_organization }}/{{ item.gh_repository_name }}" >> LFS.log
-        
+              lineinfile:
+                path: LFS.log
+                line: "LFS;{{ item.bbs_project_id }};{{ item.bbs_repository_url }};{{ item.bbs_repository_name }};{{ item.bbs_project_name }};{{ item.borrar }};{{ item.gh_repository_name }};{{ item.grupo }};https://github.com/{{ item.gh_organization }}/{{  item.gh_repository_name  }}"
+    
             - name: Retry Git Push Mirror to GitHub {{ item.gh_repository_name }}
-              ansible.builtin.command: git push github --mirror
-              chdir: "repos/{{ item.grupo }}/{{ item.bbs_project_id }}"
-
+              command: git push github --mirror
+              args:
+                chdir: "repos/{{ item.grupo }}/{{ item.bbs_project_id }}"
     
         - name: Update the default branch
           uri:
