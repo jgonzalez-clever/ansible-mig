@@ -5,7 +5,7 @@ data:
     bbs_repository_name: repo-test
     bbs_repository_url: http://localhost:7990/scm/proj/repo-test.git
     borrar: NO
-    gh_organization: jgonzalez-clever
+    gh_organization: jgonzalez-clevermig-test
     gh_repository_name: RepoTestingAnsibleMig
     grupo: 1
 
