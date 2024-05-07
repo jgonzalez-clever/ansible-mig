@@ -1,13 +1,14 @@
-data: 
--
-    bbs_project_id: PROJ
-    bbs_project_name: project-test
-    bbs_repository_name: repo-test
-    bbs_repository_url: http://localhost:7990/scm/proj/repo-test.git
-    borrar: NO
-    gh_organization: jgonzalez-clever
-    gh_repository_name: RepoTestingAnsibleMig
+data:
+  - 
+    bbs_project_id: "PROJ"
+    bbs_project_name: "project-test"
+    bbs_repository_name: "repo-test"
+    bbs_repository_url: "http://localhost:7990/scm/proj/repo-test.git"
+    borrar: "NO"
+    gh_organization: "jgonzalez-clever"
+    gh_repository_name: "RepoTestingAnsibleMig"
     grupo: 1
+
 #-
 #    bbs_project_id: TPROJ
 #    bbs_project_name: TPROJ
