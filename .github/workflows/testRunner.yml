@@ -1,0 +1,15 @@
+name: test runner
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test-runner:
+    runs-on: [ 'self-hosted' , 'linux' , 'X64' ]
+    steps:
+      #- uses: actions/checkout@v3
+
+      - name: work dir
+        run: |
+          pwd
+          ls
