@@ -81,8 +81,7 @@
         - name: Git Push Mirror to GitHub {{ item.gh_repository_name }}
           block:
             - name: Git Push Mirror to GitHub {{ item.gh_repository_name }}
-              #ansible.builtin.command: git push github --mirror
-              ansible.builtin.command: git push https://github.com/{{ gh_organization }}/{{ item.gh_repository_name }}.git --mirror
+              ansible.builtin.command: git push github --mirror
               args:
                 chdir: "repos/{{ item.grupo }}/{{ item.bbs_project_id }}"
           rescue:
