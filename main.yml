@@ -3,6 +3,9 @@
   vars:
     group: 0
   tasks:
+    - name: Run a command
+      command: echo "my var={{ my_var }}"
+  
     - name: Load data from data.yml
       include_vars:
         file: files/minidata.yml
