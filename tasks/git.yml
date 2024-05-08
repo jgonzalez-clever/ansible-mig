@@ -3,7 +3,7 @@
   block:
     - name: Check if the Repository has opnened PRs
       uri:
-        url: http://localhost:7990/rest/api/0.1/projects/{{ item.bbs_project_id }}/repos/{{ item.bbs_repository_name }}/pull-requests
+        url: http://localhost:7990/rest/api/latest/projects/{{ item.bbs_project_id }}/repos/{{ item.bbs_repository_name }}/pull-requests
         method: GET
         headers:
           Accept: application/json
