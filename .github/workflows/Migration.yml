@@ -12,7 +12,7 @@ jobs:
       - name: Run migration and configure output files
         run: |
           # START MIGRATION PROCESS
-          echo ${{ secrets.VAULT_PASS }} | ansible-playbook --connection="local" -e @../secrets/secrets_file.enc -e "my_var={{ secrets.SECRET_TEST }}"  --vault-password-file=/bin/cat main.yml -vvv
+          echo ${{ secrets.VAULT_PASS }} | ansible-playbook --connection="local" -e @../secrets/secrets_file.enc -e "my_var=${{ secrets.SECRET_TEST }}"  --vault-password-file=/bin/cat main.yml -vvv
 
           # CREATE RUNNER ARTIFACT FOLDER
           mkdir ../MIGRATION-${{ github.run_number }}
