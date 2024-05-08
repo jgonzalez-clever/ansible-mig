@@ -29,7 +29,7 @@
           
         - name: Set Default Branch
           set_fact:
-            default_branch: "{{ bbs_project.json.displayId}}"
+            default_branch: "{{ bbs_project.json.displayId }}"
     
         - name: Check if the repository exist
           uri:
